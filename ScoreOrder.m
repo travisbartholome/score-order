@@ -1,13 +1,17 @@
 % newRoster = ScoreOrder(rosterCSVFilename)
 %   Creates a roster in score order out of one that is disordered
-%   Returns a cell array representing the new roster
 %   Uses the score order defined in GetOrderConfig.m
+%
+%   Saves the new roster into a new CSV file
+%   New file has the name 'SCOREORDER_' + rosterCSVFilename
+%
+%   Returns a cell array representing the new roster
 function newRoster = ScoreOrder(rosterCSVFilename)
     % Importing stuff
     roster = ImportRoster(rosterCSVFilename);
     rosterSize = size(roster);
     headers = roster(1,:);
-    score_order = GetOrderConfig();
+    userScoreOrder = GetOrderConfig();
     
     % Which column has instrument information?
     [~, col] = find(strcmp('Instrument', headers));
@@ -19,18 +23,29 @@ function newRoster = ScoreOrder(rosterCSVFilename)
     % Preallocate memory for performance
     newRoster = cell(rosterSize);
     newRoster(1,:) = headers(1,:);
-    disp(newRoster)
-    working_row = 1; % Pointer to the first empty row in newRoster
-    for current_instrument = 1:length(score_order)
+    workingRow = 1; % Pointer to the first empty row in newRoster
+    for currentInstrument = 1:length(userScoreOrder)
         % Which rows contain the current instrument name?
-        [rows, ~] = find(strcmp(score_order{current_instrument}, instrumentCol));
+        [rows, ~] = find(strcmp(userScoreOrder{currentInstrument}, instrumentCol));
         
         % Which rows in newRoster should be filled by this iteration?
-        new_rows = 1:length(rows);
-        new_rows = new_rows' + working_row;
-        working_row = working_row + length(new_rows);
+        newRows = 1:length(rows);
+        newRows = newRows' + workingRow;
+        workingRow = workingRow + length(newRows);
         
         % Add those rows from the old roster to the new one.
-        newRoster(new_rows,:) = roster(rows,:);
+        newRoster(newRows,:) = roster(rows,:);
     end
+    
+    % Write new roster to a new file
+    % Consider testing to see if this filename already exists
+    % If so, don't overwrite it
+    newFilename = strcat('SCOREORDER_', rosterCSVFilename);
+    fid = fopen(newFilename, 'w');
+    clear row
+    for row = 1:length(newRoster)
+        fprintf(fid, '%s,', newRoster{row,1:end-1});
+        fprintf(fid, '%s\n', newRoster{row,end});
+    end
+    fclose(fid);
 end
